@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Панель дохода — «Рахат»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111214; --panel:#1a1c1f; --panel2:#212327; --hair:rgba(255,255,255,0.08);
+    --text:#eceef0; --muted:#9a9fa6; --gold:#c99a4b; --gold-br:#e6bd76;
+    --green:#5fb488; --rust:#c2573f;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Manrope',sans-serif; padding:20px 16px 60px; }
+  .mono{ font-family:'JetBrains Mono',monospace; }
+  h1{ font-size:19px; font-weight:800; margin:0 0 2px; }
+  .sub{ font-size:12.5px; color:var(--muted); margin-bottom:18px; }
+
+  .controls{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--hair); border-radius:14px;
+    padding:12px 14px; margin-bottom:16px;
+  }
+  .controls label{ font-size:12px; color:var(--muted); }
+  .controls input[type=number]{
+    width:64px; background:var(--panel2); border:1px solid var(--hair); color:var(--text);
+    border-radius:8px; padding:6px 8px; font-size:13px;
+  }
+  .controls input[type=text]{
+    width:180px; background:var(--panel2); border:1px solid var(--hair); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-size:13px;
+  }
+  .btn{
+    padding:8px 13px; border-radius:9px; border:1px solid var(--hair); background:var(--panel2);
+    color:var(--text); font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .btn.primary{ border-color:var(--gold); color:var(--gold-br); }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+  .card{ background:var(--panel); border:1px solid var(--hair); border-radius:14px; padding:14px; }
+  .card .label{ font-size:11.5px; color:var(--muted); margin-bottom:6px; }
+  .card .value{ font-size:22px; font-weight:800; }
+  .card .value.gold{ color:var(--gold-br); }
+  .card .value.green{ color:var(--green); }
+
+  .section-title{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin:22px 0 10px; }
+
+  table{ width:100%; border-collapse:collapse; background:var(--panel); border-radius:14px; overflow:hidden; }
+  th,td{ text-align:left; padding:10px 12px; font-size:12.5px; border-bottom:1px solid var(--hair); }
+  th{ color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; }
+  tr:last-child td{ border-bottom:none; }
+  .items-cell{ color:var(--muted); font-size:11.5px; max-width:220px; }
+  .bank-tag{ font-size:10.5px; color:var(--muted); }
+
+  .empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:13px; background:var(--panel); border-radius:14px; }
+  .empty b{ display:block; color:var(--text); font-size:15px; margin-bottom:6px; }
+
+  .note{ margin-top:18px; padding:12px 14px; background:var(--panel2); border:1px solid var(--hair); border-radius:12px; font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .note b{ color:var(--gold-br); }
+
+  /* ---------- charts ---------- */
+  .chart-card{ background:var(--panel); border:1px solid var(--hair); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .chart-title{ font-size:12.5px; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .chart-sub{ font-size:11px; color:var(--muted); margin-bottom:14px; }
+  .bars-row{ display:flex; align-items:flex-end; gap:3px; height:110px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bar{ width:100%; max-width:20px; border-radius:4px 4px 0 0; background:var(--panel2); transition:height .3s ease; }
+  .bar.today{ background:var(--gold); }
+  .bar-label{ font-size:8.5px; color:var(--muted); margin-top:5px; white-space:nowrap; }
+
+  .dish-row{ margin-bottom:10px; }
+  .dish-row:last-child{ margin-bottom:0; }
+  .dish-row-top{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; }
+  .dish-row-top .dname{ color:var(--text); font-weight:600; }
+  .dish-row-top .dqty{ color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .dish-bar-track{ height:7px; border-radius:999px; background:var(--panel2); overflow:hidden; }
+  .dish-bar-fill{ height:100%; border-radius:999px; background:linear-gradient(90deg, var(--gold), var(--gold-br)); }
+
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .compare-card{ background:var(--panel2); border-radius:12px; padding:12px; text-align:center; }
+  .compare-card .clabel{ font-size:10.5px; color:var(--muted); margin-bottom:4px; }
+  .compare-card .cvalue{ font-size:18px; font-weight:800; color:var(--text); }
+  .delta-badge{
+    display:inline-flex; align-items:center; gap:4px; margin-top:14px; padding:6px 12px;
+    border-radius:999px; font-size:12px; font-weight:700;
+  }
+  .delta-badge.up{ background:rgba(95,180,136,0.15); color:var(--green); }
+  .delta-badge.down{ background:rgba(194,87,63,0.15); color:#e08669; }
+  .delta-badge.flat{ background:var(--panel2); color:var(--muted); }
+
+  /* ---------- menu management ---------- */
+  #stockPanel{
+    background:var(--panel); border:1px solid var(--hair); border-radius:14px;
+    padding:14px; margin-bottom:16px; display:none;
+  }
+  #stockPanel.open{ display:block; }
+  .menu-row{ padding:9px 4px; border-bottom:1px solid var(--hair); }
+  .menu-row:last-child{ border-bottom:none; }
+  .mr-top{ display:flex; align-items:center; gap:9px; }
+  .mr-thumb{
+    position:relative; width:42px; height:42px; border-radius:9px; flex-shrink:0; overflow:hidden;
+    background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:18px;
+    border:1px solid var(--hair); cursor:pointer;
+  }
+  .mr-thumb:hover{ border-color:var(--gold); }
+  .mr-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .mr-thumb.uploading img, .mr-thumb.uploading span{ opacity:0.35; }
+  .mr-thumb .cam-badge{
+    position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%;
+    background:var(--gold); color:#1c150c; font-size:9px; display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--panel);
+  }
+  .mr-thumb .spinner-dot{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:14px;
+  }
+  .mr-thumb.uploading .spinner-dot{ display:flex; }
+  .mr-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+  .price-input{
+    width:58px; flex-shrink:0; background:var(--panel2); border:1px solid var(--hair); color:var(--gold-br);
+    border-radius:8px; padding:6px 7px; font-size:12px; font-family:'JetBrains Mono',monospace; text-align:right;
+  }
+  .price-input.dirty{ border-color:var(--gold); }
+  .stock-toggle{
+    padding:6px 10px; border-radius:8px; border:1px solid var(--hair); background:var(--panel2);
+    color:var(--muted); font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap;
+  }
+  .stock-toggle.in{ border-color:var(--green); color:var(--green); }
+  .stock-toggle.out{ border-color:var(--rust); color:#e08669; }
+  .add-dish-toggle{
+    width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px dashed var(--hair);
+    background:transparent; color:var(--muted); font-size:12.5px; font-weight:700; cursor:pointer;
+  }
+  #addDishForm{ display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--hair); }
+  #addDishForm.open{ display:block; }
+  .form-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .form-row input, .form-row select{
+    background:var(--panel2); border:1px solid var(--hair); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-size:12.5px; flex:1; min-width:0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Панель дохода — Кафе «Рахат»</h1>
+<div class="sub">Заказы, оформленные через сервис заказа, и ваша комиссия с них</div>
+
+<div class="controls">
+  <label>Ключ доступа</label>
+  <input type="text" id="apiKeyInput" placeholder="OWNER_API_KEY">
+  <button class="btn primary" id="connectBtn">Подключиться</button>
+  <span id="connStatus" style="font-size:11.5px; color:var(--muted);"></span>
+</div>
+
+<div class="controls">
+  <label>Комиссия, %</label>
+  <input type="number" id="rateInput" value="4" min="0" max="100" step="0.5">
+  <button class="btn primary" id="applyRateBtn">Сохранить на сервере</button>
+  <button class="btn" id="refreshBtn">↻ Обновить</button>
+  <button class="btn" id="stockToggleBtn">🍽️ Меню, цены и фото</button>
+</div>
+
+<div id="stockPanel">
+  <div id="menuList"></div>
+  <button class="add-dish-toggle" id="addDishToggle">+ Добавить новое блюдо</button>
+  <div id="addDishForm">
+    <div class="form-row">
+      <input type="text" id="newDishName" placeholder="Название блюда">
+    </div>
+    <div class="form-row">
+      <input type="number" id="newDishPrice" placeholder="Цена, ₽" min="0">
+      <input type="number" id="newDishKcal" placeholder="Ккал (необязательно)" min="0">
+    </div>
+    <div class="form-row">
+      <select id="newDishCategory">
+        <option value="salads">Салаты</option>
+        <option value="drinks">Напитки</option>
+      </select>
+      <input type="text" id="newDishDesc" placeholder="Состав (необязательно)">
+    </div>
+    <div class="form-row" style="align-items:center;">
+      <label class="mr-thumb" id="newDishPreview" style="width:44px;height:44px;font-size:20px;">
+        <input type="file" accept="image/*" id="newDishPhotoFile" hidden>
+        <span class="thumb-placeholder">🍽️</span>
+        <span class="cam-badge">📷</span>
+        <span class="spinner-dot">⏳</span>
+      </label>
+      <span style="font-size:11.5px; color:var(--muted);">Нажмите на кружок, чтобы выбрать фото из галереи</span>
+    </div>
+    <button class="btn primary" id="saveNewDishBtn" style="width:100%;">Добавить в меню</button>
+  </div>
+</div>
+
+<div class="grid" id="metricsGrid"></div>
+
+<div class="chart-card">
+  <div class="chart-title">Эта неделя vs прошлая</div>
+  <div class="chart-sub">Оборот через сервис, последние 7 дней к предыдущим 7</div>
+  <div class="compare-grid" id="compareGrid"></div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Выручка по дням</div>
+  <div class="chart-sub">Последние 14 дней</div>
+  <div class="bars-row" id="dailyChart"></div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Топ блюд</div>
+  <div class="chart-sub">По количеству проданных порций за всё время</div>
+  <div id="topDishes"></div>
+</div>
+
+<div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+  <span>Последние заказы</span>
+  <button class="btn" id="exportCsvBtn" style="text-transform:none; letter-spacing:0;">⬇ Скачать CSV</button>
+</div>
+<div id="ordersArea"></div>
+
+<div class="note">
+  <b>Как это работает:</b> данные приходят напрямую с вашего бэкенда через защищённые эндпоинты
+  <span class="mono">/api/owner/*</span>. Ключ доступа хранится только в памяти этой вкладки — при
+  перезагрузке страницы его нужно ввести заново.
+</div>
+
+<script>
+(function(){
+  const API_BASE = ''; // пусто = тот же адрес, откуда открыта страница — бэкенд раздаёт её сам
+  let OWNER_API_KEY = '';
+  let demoMode = false;
+  const money = n => Math.round(n).toLocaleString('ru-RU') + ' ₽';
+
+  const DEMO_DISHES = [
+    {name:'Салат «Рахат»', price:400}, {name:'Королева', price:330}, {name:'Оливье', price:250},
+    {name:'Нежный', price:380}, {name:'Греческий', price:250}, {name:'Гнездо глухаря', price:350},
+    {name:'Цезарь с курицей', price:320}, {name:'Японский', price:400},
+    {name:'Чёрный чай (чайник)', price:150}, {name:'Лимонад домашний', price:200}, {name:'Кока-кола 0.33', price:120},
+  ];
+  const DEMO_BANKS = ['Т-Банк','СберБанк','Альфа-Банк','ВТБ'];
+
+  // Детерминированный псевдослучайный генератор — демо-данные выглядят одинаково при каждой загрузке
+  function pseudoRandom(seed){ const x = Math.sin(seed)*10000; return x - Math.floor(x); }
+
+  function buildDemoOrders(){
+    const orders = [];
+    let counter = 300;
+    for(let daysAgo=13; daysAgo>=0; daysAgo--){
+      const count = 2 + Math.floor(pseudoRandom(daysAgo*3.13)*5); // 2–6 заказов в день
+      for(let k=0;k<count;k++){
+        counter++;
+        const seed = daysAgo*17.7 + k*3.41;
+        const numItems = 1 + Math.floor(pseudoRandom(seed)*2);
+        const items = [];
+        let subtotal = 0;
+        for(let x=0;x<numItems;x++){
+          const dish = DEMO_DISHES[Math.floor(pseudoRandom(seed+x*1.31)*DEMO_DISHES.length)];
+          const qty = 1 + Math.floor(pseudoRandom(seed+x*2.17)*2);
+          items.push({ name:dish.name, price:dish.price, qty });
+          subtotal += dish.price*qty;
+        }
+        const isCash = pseudoRandom(seed+9.3) < 0.3;
+        const hour = 11 + Math.floor(pseudoRandom(seed+5.1)*10);
+        const createdAt = Date.now() - daysAgo*86400000 - (23-hour)*3600000;
+        orders.push({
+          orderNumber: 'RH-'+counter,
+          status: 'paid',
+          dineType: pseudoRandom(seed+7.7) < 0.25 ? 'takeaway' : 'dine_in',
+          paymentMethod: isCash ? 'cash' : 'sbp',
+          bank: isCash ? null : DEMO_BANKS[Math.floor(pseudoRandom(seed+11.3)*DEMO_BANKS.length)],
+          createdAt, subtotal,
+          commissionAmount: Math.round(subtotal*0.04),
+          items,
+        });
+      }
+    }
+    // немного "живых" заказов за последний час, с разными статусами кухни — для таблицы и вызовов
+    orders.push(
+      { orderNumber:'RH-318', status:'paid', dineType:'takeaway', paymentMethod:'sbp', bank:'Т-Банк', createdAt:Date.now()-6*60000, subtotal:800, commissionAmount:32, items:[{name:'Салат «Рахат»',price:400,qty:2}] },
+      { orderNumber:'RH-317', status:'paid', dineType:'dine_in', paymentMethod:'cash', bank:null, createdAt:Date.now()-19*60000, subtotal:400, commissionAmount:16, items:[{name:'Оливье',price:250,qty:1},{name:'Чёрный чай (чайник)',price:150,qty:1}] },
+      { orderNumber:'RH-315', status:'preparing', dineType:'dine_in', paymentMethod:'sbp', bank:'СберБанк', createdAt:Date.now()-32*60000, subtotal:720, commissionAmount:29, items:[{name:'Цезарь с курицей',price:320,qty:1},{name:'Лимонад домашний',price:200,qty:2}] }
+    );
+    return orders.sort((a,b)=> b.createdAt - a.createdAt);
+  }
+
+  const DEMO_ORDERS = buildDemoOrders();
+  const DEMO_SUMMARY = (function(){
+    const count = DEMO_ORDERS.length;
+    const revenue = DEMO_ORDERS.reduce((s,o)=>s+o.subtotal,0);
+    const commission = DEMO_ORDERS.reduce((s,o)=>s+o.commissionAmount,0);
+    const cashRevenue = DEMO_ORDERS.filter(o=>o.paymentMethod==='cash').reduce((s,o)=>s+o.subtotal,0);
+    const sbpRevenue = DEMO_ORDERS.filter(o=>o.paymentMethod==='sbp').reduce((s,o)=>s+o.subtotal,0);
+    return { count, revenue, commission, avgCheck: count?Math.round(revenue/count):0, cashRevenue, sbpRevenue, commissionRate:0.04 };
+  })();
+
+  // ---------------- analytics: работают одинаково и на демо-данных, и на реальных заказах с бэкенда ----------------
+  function computeDailyRevenue(orders, days=14){
+    const map = {};
+    for(let i=days-1;i>=0;i--){
+      const d = new Date(Date.now()-i*86400000);
+      map[d.toISOString().slice(0,10)] = 0;
+    }
+    orders.forEach(o=>{
+      if(!o.createdAt) return;
+      const key = new Date(o.createdAt).toISOString().slice(0,10);
+      if(key in map) map[key] += o.subtotal||0;
+    });
+    return Object.entries(map).map(([date,revenue])=>({date,revenue}));
+  }
+
+  function computeTopDishes(orders, limit=6){
+    const map = {};
+    orders.forEach(o=>{
+      (o.items||[]).forEach(it=>{
+        if(!map[it.name]) map[it.name] = { name: it.name, qty:0, revenue:0 };
+        map[it.name].qty += it.qty||0;
+        map[it.name].revenue += (it.price||0)*(it.qty||0);
+      });
+    });
+    return Object.values(map).sort((a,b)=> b.qty - a.qty).slice(0, limit);
+  }
+
+  function computeWeekCompare(orders){
+    const day = 86400000, now = Date.now();
+    let thisWeek=0, lastWeek=0;
+    orders.forEach(o=>{
+      if(!o.createdAt) return;
+      if(o.createdAt >= now-7*day) thisWeek += o.subtotal||0;
+      else if(o.createdAt >= now-14*day) lastWeek += o.subtotal||0;
+    });
+    return { thisWeek, lastWeek };
+  }
+
+  function renderCompare(orders){
+    const { thisWeek, lastWeek } = computeWeekCompare(orders);
+    const el = document.getElementById('compareGrid');
+    el.innerHTML = `
+      <div class="compare-card"><div class="clabel">Прошлая неделя</div><div class="cvalue mono">${money(lastWeek)}</div></div>
+      <div class="compare-card"><div class="clabel">Эта неделя</div><div class="cvalue mono" style="color:var(--gold-br)">${money(thisWeek)}</div></div>
+    `;
+    const existingBadge = el.parentElement.querySelector('.delta-wrap');
+    if(existingBadge) existingBadge.remove();
+    if(lastWeek > 0){
+      const pct = Math.round(((thisWeek-lastWeek)/lastWeek)*100);
+      const cls = pct>2 ? 'up' : (pct<-2 ? 'down' : 'flat');
+      const arrow = pct>2 ? '↑' : (pct<-2 ? '↓' : '→');
+      const wrap = document.createElement('div');
+      wrap.className = 'delta-wrap';
+      wrap.style.textAlign = 'center';
+      wrap.innerHTML = `<div class="delta-badge ${cls}">${arrow} ${pct>0?'+':''}${pct}% к прошлой неделе</div>`;
+      el.parentElement.appendChild(wrap);
+    }
+  }
+
+  function renderDailyChart(orders){
+    const days = computeDailyRevenue(orders, 14);
+    const max = Math.max(1, ...days.map(d=>d.revenue));
+    const todayKey = new Date().toISOString().slice(0,10);
+    document.getElementById('dailyChart').innerHTML = days.map(d=>{
+      const h = Math.max(3, Math.round((d.revenue/max)*100));
+      const dt = new Date(d.date);
+      const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+      return `<div class="bar-col">
+        <div class="bar ${d.date===todayKey?'today':''}" style="height:${h}%" title="${label}: ${d.revenue} ₽"></div>
+        <div class="bar-label">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTopDishes(orders){
+    const dishes = computeTopDishes(orders, 6);
+    const el = document.getElementById('topDishes');
+    if(dishes.length===0){ el.innerHTML = `<div style="color:var(--muted); font-size:12px;">Пока нет данных</div>`; return; }
+    const max = Math.max(...dishes.map(d=>d.qty));
+    el.innerHTML = dishes.map(d=>`
+      <div class="dish-row">
+        <div class="dish-row-top"><span class="dname">${d.name}</span><span class="dqty">${d.qty} шт · ${money(d.revenue)}</span></div>
+        <div class="dish-bar-track"><div class="dish-bar-fill" style="width:${Math.round((d.qty/max)*100)}%"></div></div>
+      </div>`).join('');
+  }
+
+  function exportCSV(orders){
+    if(!orders || orders.length===0) return;
+    const header = ['Заказ','Дата','Время','Состав','Сумма','Комиссия','Оплата','Тип'];
+    const rows = orders.map(o=>{
+      const d = new Date(o.createdAt);
+      const dateStr = d.toLocaleDateString('ru-RU');
+      const timeStr = d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+      const itemsStr = (o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ');
+      const pay = o.paymentMethod==='cash' ? 'Наличные' : ('СБП' + (o.bank ? ` (${o.bank})` : ''));
+      const dine = o.dineType==='takeaway' ? 'С собой' : 'В зале';
+      return [o.orderNumber, dateStr, timeStr, itemsStr, o.subtotal, o.commissionAmount, pay, dine];
+    });
+    const esc = v => { const s = String(v ?? ''); return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+    const csv = '\uFEFF' + [header, ...rows].map(r => r.map(esc).join(';')).join('\r\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `rahat-orders-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  }
+
+  let lastOrdersForExport = [];
+
+  function enterDemoMode(){
+    if(demoMode) return;
+    demoMode = true;
+    const b = document.createElement('div');
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:200;background:var(--rust);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-align:center;padding:4px 8px;';
+    b.textContent = 'ДЕМО-РЕЖИМ · сервер не подключён, данные для примера';
+    document.body.appendChild(b);
+    document.body.style.paddingTop = '32px';
+  }
+
+  async function apiFetch(path, options){
+    const opts = options || {};
+    opts.headers = Object.assign({}, opts.headers, { 'x-api-key': OWNER_API_KEY });
+    const res = await fetch(API_BASE + path, opts);
+    if(!res.ok){
+      let msg = 'Ошибка сервера ' + res.status;
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  function setStatus(text, ok){
+    const el = document.getElementById('connStatus');
+    el.textContent = text;
+    el.style.color = ok ? 'var(--green)' : 'var(--muted)';
+  }
+
+  function renderMetrics(summary){
+    document.getElementById('metricsGrid').innerHTML = `
+      <div class="card"><div class="label">Заказов через сервис</div><div class="value">${summary.count}</div></div>
+      <div class="card"><div class="label">Оборот через сервис</div><div class="value mono">${money(summary.revenue)}</div></div>
+      <div class="card"><div class="label">Ваша комиссия (${(summary.commissionRate*100).toFixed(1)}%)</div><div class="value gold mono">${money(summary.commission)}</div></div>
+      <div class="card"><div class="label">Средний чек</div><div class="value green mono">${money(summary.avgCheck)}</div></div>
+      <div class="card"><div class="label">💵 Наличными (сверка с официантами)</div><div class="value mono" style="color:#e0a869">${money(summary.cashRevenue)}</div></div>
+      <div class="card"><div class="label">СБП / банк</div><div class="value mono">${money(summary.sbpRevenue)}</div></div>
+    `;
+    document.getElementById('rateInput').value = (summary.commissionRate*100).toFixed(1);
+  }
+
+  function renderOrders(orders){
+    const el = document.getElementById('ordersArea');
+    if(orders.length === 0){
+      el.innerHTML = `<div class="empty"><b>Заказов пока нет</b>Как только гости начнут заказывать через приложение, заказы появятся здесь.</div>`;
+      return;
+    }
+    const rows = orders.map(o=>{
+      const itemsStr = (o.items||[]).map(i=>`${i.name}×${i.qty}`).join(', ');
+      const time = o.createdAt ? new Date(o.createdAt).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
+      const statusLabel = o.status === 'paid' ? '' : ` <span style="color:#e08669">(${o.status})</span>`;
+      const tags = [];
+      if(o.dineType === 'takeaway') tags.push('С собой');
+      tags.push(o.paymentMethod === 'cash' ? '💵 наличные' : (o.bank ? `СБП · ${o.bank}` : 'СБП'));
+      return `
+        <tr>
+          <td class="mono">#${o.orderNumber}${statusLabel}</td>
+          <td>${time}</td>
+          <td class="items-cell">${itemsStr}<div class="bank-tag">${tags.join(' · ')}</div></td>
+          <td class="mono">${money(o.subtotal)}</td>
+          <td class="mono" style="color:var(--gold-br)">${money(o.commissionAmount)}</td>
+        </tr>`;
+    }).join('');
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Заказ</th><th>Время</th><th>Состав</th><th>Сумма</th><th>Комиссия</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderAll(orders){
+    lastOrdersForExport = orders;
+    renderCompare(orders);
+    renderDailyChart(orders);
+    renderTopDishes(orders);
+    renderOrders(orders.slice(0, 25));
+  }
+
+  async function refresh(){
+    if(demoMode){
+      renderMetrics(DEMO_SUMMARY);
+      renderAll(DEMO_ORDERS);
+      return;
+    }
+    if(!OWNER_API_KEY){
+      try{
+        await fetch(API_BASE + '/api/health');
+        setStatus('Введите ключ доступа (OWNER_API_KEY из .env бэкенда)', false);
+      }catch(e){
+        enterDemoMode();
+        setStatus('Демо-данные — подключите бэкенд для реальных цифр', false);
+        renderMetrics(DEMO_SUMMARY);
+        renderAll(DEMO_ORDERS);
+      }
+      return;
+    }
+    try{
+      const [summary, ordersRes] = await Promise.all([
+        apiFetch('/api/owner/summary'),
+        apiFetch('/api/owner/orders'),
+      ]);
+      setStatus('Подключено ✓', true);
+      renderMetrics(summary);
+      renderAll(ordersRes.orders || []);
+    }catch(err){
+      setStatus('Ошибка: ' + err.message, false);
+      document.getElementById('ordersArea').innerHTML =
+        `<div class="empty"><b>Не удалось загрузить данные</b>Проверьте, что бэкенд запущен по адресу <span class="mono">${API_BASE}</span> и ключ доступа верный.</div>`;
+      document.getElementById('metricsGrid').innerHTML = '';
+    }
+  }
+
+  document.getElementById('exportCsvBtn').onclick = ()=> exportCSV(lastOrdersForExport);
+
+  refresh();
+
+  document.getElementById('connectBtn').onclick = ()=>{
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if(!key) return;
+    OWNER_API_KEY = key;
+    refresh();
+  };
+
+  document.getElementById('applyRateBtn').onclick = async ()=>{
+    const v = parseFloat(document.getElementById('rateInput').value);
+    if(isNaN(v) || v < 0 || v > 100) return;
+    if(!OWNER_API_KEY){ setStatus('Сначала подключитесь', false); return; }
+    try{
+      await apiFetch('/api/owner/settings/commission-rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rate: v/100 }),
+      });
+      refresh();
+    }catch(err){ setStatus('Ошибка сохранения: ' + err.message, false); }
+  };
+  document.getElementById('refreshBtn').onclick = refresh;
+
+  // ---------------- menu management (цена, фото, наличие, новые блюда) ----------------
+  const DEMO_MENU = [
+    { id:'rahat', name:'Салат «Рахат»', category:'salads', price:400, kcal:320, description:'Говядина, картофель, огурцы маринованные', inStock:true, imageUrl:'https://images.unsplash.com/photo-1608032076073-a0fe38a53c44?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'koroleva', name:'Королева', category:'salads', price:330, kcal:385, description:'Куриное филе, копчёное мясо, кукуруза', inStock:true, imageUrl:'https://images.unsplash.com/photo-1690573313202-4493a7d02e9c?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'olivie', name:'Оливье', category:'salads', price:250, kcal:310, description:'Колбаса говяжья, картофель, огурцы', inStock:true, imageUrl:'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'nezhny', name:'Нежный', category:'salads', price:380, kcal:425, description:'Курица, грибы жареные, грецкий орех', inStock:false, imageUrl:'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'grech', name:'Греческий', category:'salads', price:250, kcal:215, description:'Помидоры, огурцы, перец, фета', inStock:true, imageUrl:'https://images.unsplash.com/photo-1659270157059-06aa84f64532?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'gnezdo', name:'Гнездо глухаря', category:'salads', price:350, kcal:365, description:'Курица, копчёная колбаса, перепелиное яйцо', inStock:true, imageUrl:'https://images.unsplash.com/photo-1580013759032-c96505e24c1f?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'cesar', name:'Цезарь с курицей', category:'salads', price:320, kcal:340, description:'Курица, айсберг, пармезан, соус цезарь', inStock:true, imageUrl:'https://images.unsplash.com/photo-1746211108786-ca20c8f80ecd?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'japan', name:'Японский', category:'salads', price:400, kcal:265, description:'Говядина, соевый соус, кунжут', inStock:true, imageUrl:'https://images.unsplash.com/photo-1512852939750-1305098529bf?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'tea', name:'Чёрный чай (чайник)', category:'drinks', price:150, kcal:0, description:'Классический чёрный чай', inStock:true, imageUrl:null },
+    { id:'lemonade', name:'Лимонад домашний', category:'drinks', price:200, kcal:120, description:'Домашний лимонад с мятой', inStock:true, imageUrl:null },
+    { id:'cola', name:'Кока-кола 0.33', category:'drinks', price:120, kcal:140, description:'Охлаждённая кока-кола', inStock:true, imageUrl:null },
+  ];
+
+  let stockOpen = false;
+  document.getElementById('stockToggleBtn').onclick = ()=>{
+    stockOpen = !stockOpen;
+    document.getElementById('stockPanel').classList.toggle('open', stockOpen);
+    if(stockOpen) refreshStock();
+  };
+
+  // Загружает фото на бэкенд и возвращает публичную ссылку. В демо-режиме, где
+  // бэкенда нет, превращает файл в data-URL прямо в браузере — работает офлайн,
+  // но существует только в рамках этой вкладки.
+  async function uploadPhoto(file){
+    if(demoMode){
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch(API_BASE + '/api/staff/upload', {
+      method: 'POST',
+      headers: { 'x-api-key': OWNER_API_KEY },
+      body: fd,
+    });
+    if(!res.ok){
+      let msg = 'Не удалось загрузить фото';
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    return data.url;
+  }
+
+  async function refreshStock(){
+    const panel = document.getElementById('menuList');
+    let list;
+    if(demoMode){
+      list = DEMO_MENU;
+    } else {
+      try{
+        // Владелец использует те же эндпоинты, что и официант — /api/staff/menu.
+        // Ключ владельца принимается везде, где принимается ключ официанта, так что
+        // права совпадают полностью, без дублирования кода на бэкенде.
+        const res = await apiFetch('/api/staff/menu');
+        list = res.items;
+      }catch(err){
+        panel.innerHTML = `<div class="empty">Не удалось загрузить меню: ${err.message}</div>`;
+        return;
+      }
+    }
+    panel.innerHTML = list.map(it => `
+      <div class="menu-row">
+        <div class="mr-top">
+          <label class="mr-thumb" data-id="${it.id}">
+            <input type="file" accept="image/*" class="photo-file-input" data-id="${it.id}" hidden>
+            ${it.imageUrl ? `<img src="${it.imageUrl}" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">` : '<span>🍽️</span>'}
+            <span class="cam-badge">📷</span>
+            <span class="spinner-dot">⏳</span>
+          </label>
+          <span class="mr-name">${it.name}</span>
+          <input type="number" class="price-input" data-price-id="${it.id}" value="${it.price}" min="0">
+          <button class="stock-toggle ${it.inStock?'in':'out'}" data-id="${it.id}" data-state="${it.inStock?1:0}">
+            ${it.inStock ? 'В наличии' : 'Нет'}
+          </button>
+        </div>
+      </div>`).join('');
+
+    panel.querySelectorAll('.price-input').forEach(inp=>{
+      const original = inp.value;
+      inp.oninput = ()=> inp.classList.toggle('dirty', inp.value !== original);
+      inp.onblur = async ()=>{
+        const newPrice = Number(inp.value);
+        if(inp.value === original || isNaN(newPrice) || newPrice < 0) return;
+        inp.disabled = true;
+        if(demoMode){
+          const it = DEMO_MENU.find(x=>x.id===inp.dataset.priceId);
+          if(it) it.price = newPrice;
+          inp.disabled = false; inp.classList.remove('dirty');
+          return;
+        }
+        try{
+          await apiFetch(`/api/staff/menu/${inp.dataset.priceId}`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ price: newPrice }),
+          });
+          inp.classList.remove('dirty');
+        }catch(err){ setStatus('Ошибка сохранения цены: ' + err.message, false); }
+        inp.disabled = false;
+      };
+    });
+
+    panel.querySelectorAll('.photo-file-input').forEach(fileInp=>{
+      fileInp.addEventListener('change', async ()=>{
+        const file = fileInp.files && fileInp.files[0];
+        if(!file) return;
+        const id = fileInp.dataset.id;
+        const thumb = fileInp.closest('.mr-thumb');
+        thumb.classList.add('uploading');
+        try{
+          const url = await uploadPhoto(file);
+          if(demoMode){
+            const it = DEMO_MENU.find(x=>x.id===id);
+            if(it) it.imageUrl = url;
+          } else {
+            await apiFetch(`/api/staff/menu/${id}`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ imageUrl: url }),
+            });
+          }
+          refreshStock();
+        }catch(err){
+          setStatus('Ошибка загрузки фото: ' + err.message, false);
+          thumb.classList.remove('uploading');
+        }
+      });
+    });
+
+    panel.querySelectorAll('.stock-toggle').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const newState = btn.dataset.state !== '1';
+        btn.disabled = true;
+        if(demoMode){
+          const it = DEMO_MENU.find(x => x.id === btn.dataset.id);
+          if(it) it.inStock = newState;
+          refreshStock();
+          return;
+        }
+        try{
+          await apiFetch(`/api/staff/menu/${btn.dataset.id}/stock`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ inStock: newState }),
+          });
+          refreshStock();
+        }catch(err){ setStatus('Ошибка: ' + err.message, false); btn.disabled = false; }
+      };
+    });
+  }
+
+  let newDishImageUrl = '';
+  document.getElementById('newDishPhotoFile').addEventListener('change', async function(){
+    const file = this.files && this.files[0];
+    if(!file) return;
+    const thumb = document.getElementById('newDishPreview');
+    thumb.classList.add('uploading');
+    try{
+      const url = await uploadPhoto(file);
+      newDishImageUrl = url;
+      thumb.querySelector('.thumb-placeholder')?.remove();
+      thumb.querySelectorAll('img').forEach(i=>i.remove());
+      const img = document.createElement('img');
+      img.src = url; img.referrerPolicy = 'no-referrer';
+      img.onerror = ()=>{ img.replaceWith(Object.assign(document.createElement('span'), { textContent:'🍽️' })); };
+      thumb.prepend(img);
+    }catch(err){
+      setStatus('Ошибка загрузки фото: ' + err.message, false);
+    }
+    thumb.classList.remove('uploading');
+  });
+
+  document.getElementById('addDishToggle').onclick = ()=>{
+    document.getElementById('addDishForm').classList.toggle('open');
+  };
+
+  document.getElementById('saveNewDishBtn').onclick = async ()=>{
+    const name = document.getElementById('newDishName').value.trim();
+    const price = Number(document.getElementById('newDishPrice').value);
+    const kcal = Number(document.getElementById('newDishKcal').value) || 0;
+    const category = document.getElementById('newDishCategory').value;
+    const description = document.getElementById('newDishDesc').value.trim();
+    const imageUrl = newDishImageUrl;
+    if(!name){ setStatus('Введите название блюда', false); return; }
+    if(isNaN(price) || price < 0){ setStatus('Укажите корректную цену', false); return; }
+
+    function resetForm(){
+      document.getElementById('newDishName').value = '';
+      document.getElementById('newDishPrice').value = '';
+      document.getElementById('newDishKcal').value = '';
+      document.getElementById('newDishDesc').value = '';
+      document.getElementById('newDishPhotoFile').value = '';
+      newDishImageUrl = '';
+      const thumb = document.getElementById('newDishPreview');
+      thumb.querySelectorAll('img').forEach(i=>i.remove());
+      if(!thumb.querySelector('.thumb-placeholder')){
+        const span = document.createElement('span');
+        span.className = 'thumb-placeholder'; span.textContent = '🍽️';
+        thumb.prepend(span);
+      }
+      document.getElementById('addDishForm').classList.remove('open');
+    }
+
+    const btn = document.getElementById('saveNewDishBtn');
+    btn.disabled = true;
+    if(demoMode){
+      const id = 'demo-' + Math.random().toString(36).slice(2,8);
+      DEMO_MENU.push({ id, name, price, kcal, category, description, imageUrl: imageUrl||null, inStock:true });
+      resetForm();
+      refreshStock();
+      btn.disabled = false;
+      return;
+    }
+    try{
+      await apiFetch('/api/staff/menu', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, price, kcal, category, description, imageUrl }),
+      });
+      resetForm();
+      refreshStock();
+    }catch(err){ setStatus('Ошибка добавления: ' + err.message, false); }
+    btn.disabled = false;
+  };
+})();
+</script>
+</body>
+</html>

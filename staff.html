@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Официант / Кухня — «Рахат»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111214; --panel:#1a1c1f; --panel2:#212327; --hair:rgba(255,255,255,0.08);
+    --text:#eceef0; --muted:#9a9fa6; --gold:#c99a4b; --gold-br:#e6bd76;
+    --sage:#5fb488; --rust:#c2573f;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Manrope',sans-serif; padding:20px 16px 60px; }
+  .mono{ font-family:'JetBrains Mono',monospace; }
+  h1{ font-size:19px; font-weight:800; margin:0 0 2px; }
+  .sub{ font-size:12.5px; color:var(--muted); margin-bottom:18px; }
+
+  .controls{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--hair); border-radius:14px;
+    padding:12px 14px; margin-bottom:18px;
+  }
+  .controls label{ font-size:12px; color:var(--muted); }
+  .controls input[type=text]{
+    width:180px; background:var(--panel2); border:1px solid var(--hair); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-size:13px;
+  }
+  .btn{ padding:9px 14px; border-radius:9px; border:1px solid var(--hair); background:var(--panel2);
+    color:var(--text); font-size:12.5px; font-weight:600; cursor:pointer; }
+  .btn.primary{ border-color:var(--gold); color:var(--gold-br); }
+  .btn.ghost{ background:transparent; }
+  .status-line{ font-size:11.5px; color:var(--muted); }
+
+  /* ---- waiter calls ---- */
+  #callsBar{ margin-bottom:16px; }
+  .call-chip{
+    display:inline-flex; align-items:center; gap:10px;
+    background: rgba(194,87,63,0.16); border:1px solid var(--rust);
+    border-radius:12px; padding:10px 14px; margin:0 8px 8px 0;
+    animation: pulseCall 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseCall{ 0%,100%{ box-shadow:0 0 0 0 rgba(194,87,63,0.35);} 50%{ box-shadow:0 0 0 6px rgba(194,87,63,0);} }
+  .call-chip .ct{ font-size:13px; font-weight:800; }
+  .call-chip .cm{ font-size:11px; color:var(--muted); }
+  .call-chip button{
+    padding:6px 11px; border-radius:8px; border:none; background:var(--rust);
+    color:#fff; font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+
+  /* ---- menu management panel ---- */
+  #stockPanel{
+    background:var(--panel); border:1px solid var(--hair); border-radius:14px;
+    padding:14px; margin-bottom:18px; display:none;
+  }
+  #stockPanel.open{ display:block; }
+  .menu-row{ padding:9px 4px; border-bottom:1px solid var(--hair); }
+  .menu-row:last-child{ border-bottom:none; }
+  .mr-top{ display:flex; align-items:center; gap:9px; }
+  .mr-thumb{
+    position:relative; width:42px; height:42px; border-radius:9px; flex-shrink:0; overflow:hidden;
+    background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:18px;
+    border:1px solid var(--hair); cursor:pointer;
+  }
+  .mr-thumb:hover{ border-color:var(--gold); }
+  .mr-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .mr-thumb.uploading img, .mr-thumb.uploading span{ opacity:0.35; }
+  .mr-thumb .cam-badge{
+    position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%;
+    background:var(--gold); color:#1c150c; font-size:9px; display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--panel);
+  }
+  .mr-thumb .spinner-dot{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:14px;
+  }
+  .mr-thumb.uploading .spinner-dot{ display:flex; }
+  .mr-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+  .price-input{
+    width:58px; flex-shrink:0; background:var(--panel2); border:1px solid var(--hair); color:var(--gold-br);
+    border-radius:8px; padding:6px 7px; font-size:12px; font-family:'JetBrains Mono',monospace; text-align:right;
+  }
+  .price-input.dirty{ border-color:var(--gold); }
+  .stock-toggle{
+    padding:6px 10px; border-radius:8px; border:1px solid var(--hair); background:var(--panel2);
+    color:var(--muted); font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap;
+  }
+  .stock-toggle.in{ border-color:var(--sage); color:var(--sage); }
+  .stock-toggle.out{ border-color:var(--rust); color:#e08669; }
+
+  .add-dish-toggle{
+    width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px dashed var(--hair);
+    background:transparent; color:var(--muted); font-size:12.5px; font-weight:700; cursor:pointer;
+  }
+  #addDishForm{ display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--hair); }
+  #addDishForm.open{ display:block; }
+  .form-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .form-row input, .form-row select{
+    background:var(--panel2); border:1px solid var(--hair); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-size:12.5px; flex:1; min-width:0;
+  }
+
+  /* ---- print receipt ---- */
+  .oc-print{
+    width:100%; margin-top:8px; padding:8px; border-radius:9px; border:1px solid var(--hair);
+    background:transparent; color:var(--muted); font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+
+  .columns{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+  .col h2{ font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin:0 0 10px; }
+  .col-count{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:20px; height:20px; padding:0 5px; border-radius:999px;
+    background:var(--panel2); color:var(--text); font-size:11px; font-weight:700; margin-left:6px;
+  }
+
+  .order-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:14px;
+    padding:14px; margin-bottom:12px;
+  }
+  .order-card.awaiting_cash{ border-left:3px solid #e0a869; }
+  .order-card.paid{ border-left:3px solid var(--rust); }
+  .order-card.preparing{ border-left:3px solid var(--gold); }
+  .order-card.ready{ border-left:3px solid var(--sage); }
+  .oc-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .oc-num{ font-size:14px; font-weight:800; }
+  .oc-table{ font-size:11.5px; color:var(--muted); }
+  .oc-time{ font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .oc-tags{ display:flex; gap:6px; margin-bottom:10px; }
+  .oc-tag{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid var(--hair); color:var(--muted); }
+  .oc-tag.takeaway{ border-color:var(--gold); color:var(--gold-br); }
+  .oc-tag.cash{ border-color:#e0a869; color:#e0a869; }
+  .oc-items{ font-size:13px; color:var(--text); line-height:1.6; margin-bottom:12px; }
+  .oc-items div{ display:flex; justify-content:space-between; }
+  .oc-items .qty{ color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .oc-advance{
+    width:100%; padding:10px; border-radius:10px; border:none;
+    background:var(--gold); color:#1c150c; font-size:13px; font-weight:800; cursor:pointer;
+  }
+  .oc-advance.ready{ background:var(--sage); color:#0e2a1c; }
+  .oc-advance.cash{ background:#e0a869; color:#241703; }
+
+  .empty{ text-align:center; padding:30px 16px; color:var(--muted); font-size:12.5px; background:var(--panel); border-radius:14px; }
+</style>
+</head>
+<body>
+
+<h1>Официант / Кухня — «Рахат»</h1>
+<div class="sub">Активные заказы, вызовы гостей и наличие блюд</div>
+
+<div class="controls">
+  <label>Ключ доступа</label>
+  <input type="text" id="apiKeyInput" placeholder="STAFF_API_KEY">
+  <button class="btn primary" id="connectBtn">Подключиться</button>
+  <button class="btn ghost" id="stockToggleBtn">🍽️ Меню и цены</button>
+  <span class="status-line" id="connStatus"></span>
+</div>
+
+<div id="callsBar"></div>
+
+<div id="stockPanel">
+  <div id="menuList"></div>
+  <button class="add-dish-toggle" id="addDishToggle">+ Добавить новое блюдо</button>
+  <div id="addDishForm">
+    <div class="form-row">
+      <input type="text" id="newDishName" placeholder="Название блюда">
+    </div>
+    <div class="form-row">
+      <input type="number" id="newDishPrice" placeholder="Цена, ₽" min="0">
+      <input type="number" id="newDishKcal" placeholder="Ккал (необязательно)" min="0">
+    </div>
+    <div class="form-row">
+      <select id="newDishCategory">
+        <option value="salads">Салаты</option>
+        <option value="drinks">Напитки</option>
+      </select>
+      <input type="text" id="newDishDesc" placeholder="Состав (необязательно)">
+    </div>
+    <div class="form-row" style="align-items:center;">
+      <label class="mr-thumb" id="newDishPreview" style="width:44px;height:44px;font-size:20px;">
+        <input type="file" accept="image/*" id="newDishPhotoFile" hidden>
+        <span class="thumb-placeholder">🍽️</span>
+        <span class="cam-badge">📷</span>
+        <span class="spinner-dot">⏳</span>
+      </label>
+      <span style="font-size:11.5px; color:var(--muted);">Нажмите на кружок, чтобы выбрать фото из галереи</span>
+    </div>
+    <button class="btn primary" id="saveNewDishBtn" style="width:100%;">Добавить в меню</button>
+  </div>
+</div>
+
+<div class="columns" id="columns"></div>
+
+<script>
+(function(){
+  const API_BASE = ''; // пусто = тот же адрес, откуда открыта страница — бэкенд раздаёт её сам
+  let STAFF_API_KEY = '';
+
+  const COLS = [
+    { status:'awaiting_cash', title:'Ожидают оплаты' },
+    { status:'paid', title:'Новые' },
+    { status:'preparing', title:'Готовятся' },
+    { status:'ready', title:'Готовы — подать' },
+  ];
+  const NEXT_LABEL = {
+    awaiting_cash:'Получил наличные →', paid:'Начать готовить →', preparing:'Готово →', ready:'Подано ✓',
+  };
+
+  let demoMode = false;
+
+  // Встроенные данные для показа без сервера
+  const DEMO_ORDERS = [
+    { orderNumber:'RH-317', table:'3', status:'awaiting_cash', dineType:'dine_in', paymentMethod:'cash', subtotal:400,
+      createdAt: Date.now()-2*60000, items:[{name:'Оливье',price:250,qty:1},{name:'Чёрный чай (чайник)',price:150,qty:1}] },
+    { orderNumber:'RH-318', table:'5', status:'paid', dineType:'takeaway', paymentMethod:'sbp', bank:'Т-Банк', subtotal:800,
+      createdAt: Date.now()-4*60000, items:[{name:'Салат «Рахат»',price:400,qty:2}] },
+    { orderNumber:'RH-315', table:'1', status:'preparing', dineType:'dine_in', paymentMethod:'sbp', bank:'СберБанк', subtotal:720,
+      createdAt: Date.now()-9*60000, items:[{name:'Цезарь с курицей',price:320,qty:1},{name:'Лимонад домашний',price:200,qty:2}] },
+    { orderNumber:'RH-312', table:'7', status:'ready', dineType:'dine_in', paymentMethod:'sbp', bank:'Альфа-Банк', subtotal:350,
+      createdAt: Date.now()-14*60000, items:[{name:'Гнездо глухаря',price:350,qty:1}] },
+  ];
+  const DEMO_CALLS = [ { id:1, table:'2', createdAt: Date.now()-60000 } ];
+  const DEMO_MENU = [
+    { id:'rahat', name:'Салат «Рахат»', category:'salads', price:400, kcal:320, description:'Говядина, картофель, огурцы маринованные', inStock:true, imageUrl:'https://images.unsplash.com/photo-1608032076073-a0fe38a53c44?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'koroleva', name:'Королева', category:'salads', price:330, kcal:385, description:'Куриное филе, копчёное мясо, кукуруза', inStock:true, imageUrl:'https://images.unsplash.com/photo-1690573313202-4493a7d02e9c?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'olivie', name:'Оливье', category:'salads', price:250, kcal:310, description:'Колбаса говяжья, картофель, огурцы', inStock:true, imageUrl:'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'nezhny', name:'Нежный', category:'salads', price:380, kcal:425, description:'Курица, грибы жареные, грецкий орех', inStock:false, imageUrl:'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'grech', name:'Греческий', category:'salads', price:250, kcal:215, description:'Помидоры, огурцы, перец, фета', inStock:true, imageUrl:'https://images.unsplash.com/photo-1659270157059-06aa84f64532?w=200&h=200&fit=crop&auto=format&q=70' },
+    { id:'tea', name:'Чёрный чай (чайник)', category:'drinks', price:150, kcal:0, description:'Классический чёрный чай', inStock:true, imageUrl:null },
+  ];
+
+  function enterDemoMode(){
+    if(demoMode) return;
+    demoMode = true;
+    const b = document.createElement('div');
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:200;background:var(--rust);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-align:center;padding:4px 8px;';
+    b.textContent = 'ДЕМО-РЕЖИМ · сервер не подключён';
+    document.body.appendChild(b);
+    document.body.style.paddingTop = '32px';
+  }
+
+  function setStatus(text, ok){
+    const el = document.getElementById('connStatus');
+    el.textContent = text;
+    el.style.color = ok ? 'var(--sage)' : 'var(--muted)';
+  }
+
+  async function apiFetch(path, options){
+    const opts = options || {};
+    opts.headers = Object.assign({}, opts.headers, { 'x-api-key': STAFF_API_KEY });
+    const res = await fetch(API_BASE + path, opts);
+    if(!res.ok){
+      let msg = 'Ошибка сервера ' + res.status;
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  function minutesAgo(ts){
+    const m = Math.floor((Date.now() - ts) / 60000);
+    return m <= 0 ? 'только что' : `${m} мин назад`;
+  }
+
+  // ---------------- orders ----------------
+  function renderOrders(orders){
+    const root = document.getElementById('columns');
+    root.innerHTML = COLS.map(col=>{
+      const list = orders.filter(o => o.status === col.status);
+      const cards = list.length === 0
+        ? `<div class="empty">Пусто</div>`
+        : list.map(o => {
+            const tags = [];
+            if(o.dineType === 'takeaway') tags.push(`<span class="oc-tag takeaway">С собой</span>`);
+            if(o.paymentMethod === 'cash') tags.push(`<span class="oc-tag cash">💵 Наличные</span>`);
+            const advanceCls = o.status==='ready' ? 'ready' : (o.status==='awaiting_cash' ? 'cash' : '');
+            const action = o.status === 'awaiting_cash'
+              ? `data-action="cash" data-order="${o.orderNumber}"`
+              : `data-action="advance" data-order="${o.orderNumber}"`;
+            return `
+            <div class="order-card ${o.status}">
+              <div class="oc-top">
+                <div>
+                  <span class="oc-num mono">#${o.orderNumber}</span>
+                  <span class="oc-table">· стол № ${o.table}</span>
+                </div>
+                <span class="oc-time">${minutesAgo(o.createdAt)}</span>
+              </div>
+              ${tags.length ? `<div class="oc-tags">${tags.join('')}</div>` : ''}
+              <div class="oc-items">
+                ${o.items.map(i => `<div><span>${i.name}</span><span class="qty">×${i.qty}</span></div>`).join('')}
+              </div>
+              <button class="oc-advance ${advanceCls}" ${action}>${NEXT_LABEL[o.status]}</button>
+              <button class="oc-print" data-print="${o.orderNumber}">🖨️ Печать чека</button>
+            </div>`;
+          }).join('');
+      return `<div class="col"><h2>${col.title}<span class="col-count">${list.length}</span></h2>${cards}</div>`;
+    }).join('');
+
+    root.querySelectorAll('.oc-advance').forEach(btn=>{
+      btn.onclick = async ()=>{
+        btn.disabled = true;
+        if(demoMode){
+          const NEXT = { awaiting_cash:'paid', paid:'preparing', preparing:'ready', ready:'served' };
+          const o = DEMO_ORDERS.find(x => x.orderNumber === btn.dataset.order);
+          if(o){
+            const next = NEXT[o.status];
+            if(next === 'served'){ DEMO_ORDERS.splice(DEMO_ORDERS.indexOf(o), 1); }
+            else { o.status = next; }
+          }
+          refreshAll();
+          return;
+        }
+        const path = btn.dataset.action === 'cash'
+          ? `/api/staff/orders/${btn.dataset.order}/confirm-cash`
+          : `/api/staff/orders/${btn.dataset.order}/advance`;
+        try{
+          await apiFetch(path, { method:'POST' });
+          refreshAll();
+        }catch(err){
+          setStatus('Ошибка: ' + err.message, false);
+          btn.disabled = false;
+        }
+      };
+    });
+
+    root.querySelectorAll('[data-print]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const o = orders.find(x => x.orderNumber === btn.dataset.print);
+        if(o) printReceipt(o);
+      };
+    });
+  }
+
+  // ---------------- print receipt (обычная печать браузера — работает с любым принтером,
+  // подключённым к устройству официанта, без интеграции с их кассовой системой) ----------------
+  function printReceipt(o){
+    const time = new Date(o.createdAt).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const payLabel = o.paymentMethod==='cash' ? 'Наличные' : ('СБП' + (o.bank ? ` (${o.bank})` : ''));
+    const dineLabel = o.dineType==='takeaway' ? 'С собой' : 'В зале';
+    const itemsRows = (o.items||[]).map(i=>{
+      const price = i.price != null ? i.price : '';
+      const lineTotal = i.price != null ? i.price*i.qty : '';
+      return `<tr><td>${i.name}</td><td class="c">×${i.qty}</td><td class="r">${lineTotal}</td></tr>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Чек ${o.orderNumber}</title>
+    <style>
+      @page{ margin: 6mm; }
+      body{ font-family:'Courier New',monospace; width:280px; margin:0 auto; color:#000; font-size:13px; }
+      h1{ text-align:center; font-size:15px; margin:0 0 2px; }
+      .sub{ text-align:center; font-size:11px; margin-bottom:10px; }
+      hr{ border:none; border-top:1px dashed #000; margin:8px 0; }
+      table{ width:100%; border-collapse:collapse; }
+      td{ padding:3px 0; font-size:12.5px; vertical-align:top; }
+      td.c{ text-align:center; white-space:nowrap; }
+      td.r{ text-align:right; white-space:nowrap; }
+      .total-row td{ font-weight:bold; font-size:14px; padding-top:8px; }
+      .meta{ font-size:11.5px; margin:2px 0; }
+      .footer{ text-align:center; font-size:11px; margin-top:14px; }
+    </style></head><body>
+      <h1>КАФЕ «РАХАТ»</h1>
+      <div class="sub">Столик № ${o.table} · Заказ #${o.orderNumber}</div>
+      <hr>
+      <div class="meta">Время: ${time}</div>
+      <div class="meta">Тип: ${dineLabel}</div>
+      <div class="meta">Оплата: ${payLabel}</div>
+      <hr>
+      <table>${itemsRows}
+        <tr class="total-row"><td colspan="2">ИТОГО</td><td class="r">${o.subtotal ?? ''} ₽</td></tr>
+      </table>
+      <hr>
+      <div class="footer">Спасибо за заказ!<br>Приходите ещё — «Рахат»</div>
+      <script>window.onload = () => { window.print(); }<\/script>
+    </body></html>`;
+    const w = window.open('', '_blank', 'width=360,height=640');
+    if(!w){ alert('Разрешите всплывающие окна для печати чека'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+  }
+
+  // ---------------- waiter calls ----------------
+  function renderCalls(calls){
+    const el = document.getElementById('callsBar');
+    if(calls.length === 0){ el.innerHTML = ''; return; }
+    el.innerHTML = calls.map(c => `
+      <div class="call-chip">
+        <div>
+          <div class="ct">🔔 Стол № ${c.table}</div>
+          <div class="cm">${minutesAgo(c.createdAt)}</div>
+        </div>
+        <button data-call="${c.id}">Обработано</button>
+      </div>`).join('');
+    el.querySelectorAll('button[data-call]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        btn.disabled = true;
+        if(demoMode){
+          const idx = DEMO_CALLS.findIndex(c => String(c.id) === btn.dataset.call);
+          if(idx >= 0) DEMO_CALLS.splice(idx, 1);
+          refreshAll();
+          return;
+        }
+        try{
+          await apiFetch(`/api/staff/calls/${btn.dataset.call}/resolve`, { method:'POST' });
+          refreshAll();
+        }catch(err){ setStatus('Ошибка: ' + err.message, false); btn.disabled = false; }
+      };
+    });
+  }
+
+  // ---------------- menu management panel ----------------
+  let stockOpen = false;
+  let currentMenuList = [];
+  document.getElementById('stockToggleBtn').onclick = ()=>{
+    stockOpen = !stockOpen;
+    document.getElementById('stockPanel').classList.toggle('open', stockOpen);
+    if(stockOpen) refreshStock();
+  };
+
+  // Загружает фото на бэкенд и возвращает публичную ссылку. В демо-режиме, где
+  // бэкенда нет, превращает файл в data-URL прямо в браузере — работает офлайн,
+  // но существует только в рамках этой вкладки.
+  async function uploadPhoto(file){
+    if(demoMode){
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch(API_BASE + '/api/staff/upload', {
+      method: 'POST',
+      headers: { 'x-api-key': STAFF_API_KEY },
+      body: fd,
+    });
+    if(!res.ok){
+      let msg = 'Не удалось загрузить фото';
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    return data.url;
+  }
+
+  async function refreshStock(){
+    const panel = document.getElementById('menuList');
+    let list;
+    if(demoMode){
+      list = DEMO_MENU;
+    } else {
+      try{
+        const res = await apiFetch('/api/staff/menu');
+        list = res.items;
+      }catch(err){
+        panel.innerHTML = `<div class="empty">Не удалось загрузить меню: ${err.message}</div>`;
+        return;
+      }
+    }
+    currentMenuList = list;
+    panel.innerHTML = list.map(it => `
+      <div class="menu-row">
+        <div class="mr-top">
+          <label class="mr-thumb" data-id="${it.id}">
+            <input type="file" accept="image/*" class="photo-file-input" data-id="${it.id}" hidden>
+            ${it.imageUrl ? `<img src="${it.imageUrl}" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">` : '<span>🍽️</span>'}
+            <span class="cam-badge">📷</span>
+            <span class="spinner-dot">⏳</span>
+          </label>
+          <span class="mr-name">${it.name}</span>
+          <input type="number" class="price-input" data-price-id="${it.id}" value="${it.price}" min="0">
+          <button class="stock-toggle ${it.inStock?'in':'out'}" data-id="${it.id}" data-state="${it.inStock?1:0}">
+            ${it.inStock ? 'В наличии' : 'Нет'}
+          </button>
+        </div>
+      </div>`).join('');
+
+    panel.querySelectorAll('.price-input').forEach(inp=>{
+      const original = inp.value;
+      inp.oninput = ()=> inp.classList.toggle('dirty', inp.value !== original);
+      inp.onblur = async ()=>{
+        const newPrice = Number(inp.value);
+        if(inp.value === original || isNaN(newPrice) || newPrice < 0) return;
+        inp.disabled = true;
+        if(demoMode){
+          const it = DEMO_MENU.find(x=>x.id===inp.dataset.priceId);
+          if(it) it.price = newPrice;
+          inp.disabled = false; inp.classList.remove('dirty');
+          return;
+        }
+        try{
+          await apiFetch(`/api/staff/menu/${inp.dataset.priceId}`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ price: newPrice }),
+          });
+          inp.classList.remove('dirty');
+        }catch(err){ setStatus('Ошибка сохранения цены: ' + err.message, false); }
+        inp.disabled = false;
+      };
+    });
+
+    panel.querySelectorAll('.photo-file-input').forEach(fileInp=>{
+      fileInp.addEventListener('change', async ()=>{
+        const file = fileInp.files && fileInp.files[0];
+        if(!file) return;
+        const id = fileInp.dataset.id;
+        const thumb = fileInp.closest('.mr-thumb');
+        thumb.classList.add('uploading');
+        try{
+          const url = await uploadPhoto(file);
+          if(demoMode){
+            const it = DEMO_MENU.find(x=>x.id===id);
+            if(it) it.imageUrl = url;
+          } else {
+            await apiFetch(`/api/staff/menu/${id}`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ imageUrl: url }),
+            });
+          }
+          refreshStock();
+        }catch(err){
+          setStatus('Ошибка загрузки фото: ' + err.message, false);
+          thumb.classList.remove('uploading');
+        }
+      });
+    });
+
+    panel.querySelectorAll('.stock-toggle').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const newState = btn.dataset.state !== '1';
+        btn.disabled = true;
+        if(demoMode){
+          const it = DEMO_MENU.find(x => x.id === btn.dataset.id);
+          if(it) it.inStock = newState;
+          refreshStock();
+          return;
+        }
+        try{
+          await apiFetch(`/api/staff/menu/${btn.dataset.id}/stock`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ inStock: newState }),
+          });
+          refreshStock();
+        }catch(err){ setStatus('Ошибка: ' + err.message, false); btn.disabled = false; }
+      };
+    });
+  }
+
+  let newDishImageUrl = '';
+  document.getElementById('newDishPhotoFile').addEventListener('change', async function(){
+    const file = this.files && this.files[0];
+    if(!file) return;
+    const thumb = document.getElementById('newDishPreview');
+    thumb.classList.add('uploading');
+    try{
+      const url = await uploadPhoto(file);
+      newDishImageUrl = url;
+      thumb.querySelector('.thumb-placeholder')?.remove();
+      thumb.querySelectorAll('img').forEach(i=>i.remove());
+      const img = document.createElement('img');
+      img.src = url; img.referrerPolicy = 'no-referrer';
+      img.onerror = ()=>{ img.replaceWith(Object.assign(document.createElement('span'), { textContent:'🍽️' })); };
+      thumb.prepend(img);
+    }catch(err){
+      setStatus('Ошибка загрузки фото: ' + err.message, false);
+    }
+    thumb.classList.remove('uploading');
+  });
+
+  document.getElementById('addDishToggle').onclick = ()=>{
+    document.getElementById('addDishForm').classList.toggle('open');
+  };
+
+  document.getElementById('saveNewDishBtn').onclick = async ()=>{
+    const name = document.getElementById('newDishName').value.trim();
+    const price = Number(document.getElementById('newDishPrice').value);
+    const kcal = Number(document.getElementById('newDishKcal').value) || 0;
+    const category = document.getElementById('newDishCategory').value;
+    const description = document.getElementById('newDishDesc').value.trim();
+    const imageUrl = newDishImageUrl;
+    if(!name){ setStatus('Введите название блюда', false); return; }
+    if(isNaN(price) || price < 0){ setStatus('Укажите корректную цену', false); return; }
+
+    function resetForm(){
+      document.getElementById('newDishName').value = '';
+      document.getElementById('newDishPrice').value = '';
+      document.getElementById('newDishKcal').value = '';
+      document.getElementById('newDishDesc').value = '';
+      document.getElementById('newDishPhotoFile').value = '';
+      newDishImageUrl = '';
+      const thumb = document.getElementById('newDishPreview');
+      thumb.querySelectorAll('img').forEach(i=>i.remove());
+      if(!thumb.querySelector('.thumb-placeholder')){
+        const span = document.createElement('span');
+        span.className = 'thumb-placeholder'; span.textContent = '🍽️';
+        thumb.prepend(span);
+      }
+      document.getElementById('addDishForm').classList.remove('open');
+    }
+
+    const btn = document.getElementById('saveNewDishBtn');
+    btn.disabled = true;
+    if(demoMode){
+      const id = 'demo-' + Math.random().toString(36).slice(2,8);
+      DEMO_MENU.push({ id, name, price, kcal, category, description, imageUrl: imageUrl||null, inStock:true });
+      resetForm();
+      refreshStock();
+      btn.disabled = false;
+      return;
+    }
+    try{
+      await apiFetch('/api/staff/menu', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, price, kcal, category, description, imageUrl }),
+      });
+      resetForm();
+      refreshStock();
+    }catch(err){ setStatus('Ошибка добавления: ' + err.message, false); }
+    btn.disabled = false;
+  };
+
+  async function refreshAll(){
+    if(demoMode){
+      renderOrders(DEMO_ORDERS);
+      renderCalls(DEMO_CALLS);
+      return;
+    }
+    if(!STAFF_API_KEY){
+      // Ключа нет — пробуем достучаться до сервера, чтобы понять, показывать ли демо.
+      try{
+        await fetch(API_BASE + '/api/health');
+        setStatus('Введите ключ доступа (STAFF_API_KEY из .env бэкенда)', false);
+      }catch(e){
+        enterDemoMode();
+        setStatus('Демо-данные — подключите бэкенд для реальной работы', false);
+        renderOrders(DEMO_ORDERS);
+        renderCalls(DEMO_CALLS);
+      }
+      return;
+    }
+    try{
+      const [ordersRes, callsRes] = await Promise.all([
+        apiFetch('/api/staff/orders'),
+        apiFetch('/api/staff/calls'),
+      ]);
+      setStatus('Подключено ✓', true);
+      renderOrders(ordersRes.orders || []);
+      renderCalls(callsRes.calls || []);
+    }catch(err){
+      setStatus('Ошибка: ' + err.message, false);
+    }
+  }
+
+  document.getElementById('connectBtn').onclick = ()=>{
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if(!key) return;
+    STAFF_API_KEY = key;
+    refreshAll();
+    if(stockOpen) refreshStock();
+  };
+
+  renderOrders([]);
+  refreshAll();
+  setInterval(()=>{ if(STAFF_API_KEY && !demoMode){ refreshAll(); if(stockOpen) refreshStock(); } }, 5000);
+})();
+</script>
+</body>
+</html>
