@@ -12,6 +12,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Раздача статических файлов
+app.use(express.static(__dirname));
+
+// Главная страница
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Интерфейс владельца
+app.get('/owner', (req, res) => {
+  res.sendFile(path.join(__dirname, 'owner.html'));
+});
+
+// Интерфейс сотрудников
+app.get('/staff', (req, res) => {
+  res.sendFile(path.join(__dirname, 'staff.html'));
+});
+
 // ---------- отдаём три приложения прямо с бэкенда — один деплой, один адрес ----------
 // index.html отдаётся автоматически на "/" благодаря express.static.
 const PUBLIC_DIR = path.join(__dirname, 'public');
