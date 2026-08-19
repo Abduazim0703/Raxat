@@ -45,6 +45,7 @@ async function createSbpPayment({ amountRub, description, orderNumber, returnUrl
   return { paymentId: data.id, confirmationUrl: data.confirmation?.confirmation_url, status: data.status };
 }
 
+//change
 // Перепроверяет статус платежа НАПРЯМУЮ у ЮKassa. Вебхуку самому по себе доверять
 // нельзя — тело запроса теоретически можно подделать, поэтому при получении
 // уведомления мы всегда переспрашиваем реальный статус через этот метод, и только
